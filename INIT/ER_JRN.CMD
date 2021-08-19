@@ -1,0 +1,6 @@
+-- Clear JRN --
+FLE C000
+FLE D000
+FLE E000
+
+

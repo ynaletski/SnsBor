@@ -1,0 +1,164 @@
+
+/*----------------------------*/
+void f_PMP(int ii)
+{
+  // ii - номер устройства
+  // Функция шлет запрос на получение данных из устройства ICP PMPC
+  //  ( 'M01') . Период посылки PMP[ii].pool_time мс.
+  // В ответ будет передана информация .
+  //M01 : 00001=0=+239=15528=1441=238
+
+int i;
+char buf_tmp[20];
+long int i1;
+int i2;
+
+ if(PMP[ii].status == 0) return;
+
+ if( f_timer(PMP[ii].time_stamp_pool,PMP[ii].pool_time ))
+ {
+  if((PMP_Rqst[ii].status == Req_Flt) ||
+     (PMP_Rqst[ii].status == Req_OK)) goto m1;
+  else if( f_timer(PMP[ii].time_stamp_pool,(PMP[ii].pool_time+PMP[ii].pool_time) ))
+           goto m1;
+   return;
+m1:
+//
+//                       B5 01 04 2F 01 02 06 F0 2E
+// index в буфере :      01 23 45 67 89 AB CD EF 0
+//                      PRE  A  L  C -- DATA---- CRC
+//                           D  E  O
+//                           D  N  M
+//                           R  G  M
+//                              T  A
+//                              H  N
+//                                 D
+
+           buf_tmp[0]=0xb5;
+           buf_tmp[1]=(int)PMP[ii].addr;
+           buf_tmp[2]=4;
+           buf_tmp[3]=0x2f;
+           buf_tmp[4]=1;
+           buf_tmp[5]=2;
+           buf_tmp[6]=6;
+           buf_tmp[7]=0xf0;
+
+
+
+           i1=8;
+           i2=i1;
+
+           if(f_prepare_PMP(buf_tmp,&i2)) return;
+           _fmemcpy(PMP_Rqst[ii].Cmd,buf_tmp,(long)i2);
+
+
+           PMP_Rqst[ii].cmd_lgth=i2;
+           PMP_Rqst[ii].time_stamp=TimeStamp;
+           PMP[ii].time_stamp_pool=TimeStamp;
+           PMP[ii].n_transaction++;
+           f_queue_put(PMP[ii].port, &PMP_Rqst[ii]);
+
+ // qqqqq
+            if(flag_prn)
+            {
+             printf("\n\r place in queue\n\r");
+             printf("\n\r !!! COM %d",PMP[ii].port);
+
+             printf("\n\r %2x %2x %2x %2x %2x %2x %2x %2x",
+             buf_tmp[0],buf_tmp[1],buf_tmp[2],buf_tmp[3],buf_tmp[4],buf_tmp[5],buf_tmp[6],buf_tmp[7]);
+
+             printf("\n\r %2x %2x %2x %2x %2x %2x %2x %2x",
+             buf_tmp[8],buf_tmp[9],buf_tmp[10],buf_tmp[11],buf_tmp[12],buf_tmp[13],buf_tmp[14],buf_tmp[15]);
+             flag_prn=0;
+            }
+
+ }
+}
+/*----------------------------*/
+
+//unsigned int PMP_inp_err[max_PMP]={0,0};  // счетчик ошибок ввода
+
+// char buf_tmp11[50]=      " 00001=0=+239=15528=1441=238";
+// char buf_tmp11[50]=        "00001=0=+239=15528=1441=238";
+//char buf_tmp11[50]=        "00001=0=+238=15528=1441=237";
+//char buf_tmp11[50]=        "00001=1=+000=00000=0000=194";
+
+void f_PMP_rd(int ii)
+{
+// ii - номер порта
+// заносит принятые данные в переменные
+//
+//
+ struct COM_rqst *request;
+ int i,nn,itmp;
+ long int ltmp1,ltmp2,ltmp3,ltmp4,ltmp5;
+ unsigned char *buf;
+
+//   strcpy(cb_COM[ii],buf_tmp11);
+//   n_bcom[ii]=strlen(cb_COM[ii]);
+
+   request=COM_que[ii].request[COM_que[ii].empt_ptr];
+   nn=request->n_dev; // номер устройства PMP (0,1..)
+
+   if(nn < 0) nn=0;
+   if(nn >= max_PMP ) nn=max_PMP-1;
+
+   if( f_check_crc_PMP(cb_COM[ii],ii) )
+   {
+ //в ответ на M01
+ // приходит:
+
+ //  b5  1  10  8f    1 25  2 40    2 f0 cc 41    6 d0 ff 3e    f0  0  0  0
+ //   0  1   2   3    4  5  6  7    8  9 10 11   12 13 14 15    16 17 18 19
+
+ buf=cb_COM[ii];
+ if(buf[0]  != 0xb5) goto m_err;
+ if(buf[1]  != (PMP[nn].addr & 0xff )  ) goto m_err;
+
+ if(buf[2]  != 0x10) goto m_err;
+ if(buf[4]  != 1  ) goto m_err;
+ if(buf[8]  != 2  ) goto m_err;
+ if(buf[12] != 6  ) goto m_err;
+ if(buf[16] != 0xf0  ) goto m_err;
+
+
+
+            s_PMP[nn].Prod_lvl = f_get_float_PMP(&buf[5])* 1000.;
+            s_PMP[nn].Temp     = f_get_float_PMP(&buf[9]);
+            s_PMP[nn].DensReal  = f_get_float_PMP(&buf[13])* 1000.;
+
+
+            State_PMP[nn]= f_get_long_PMP(&buf[17]) & 0xffff;
+
+            f_count_tank(nn);
+
+
+if(flag_prn)
+{
+          printf( "\r\n Prod_lvl=%f,Wat_lvl=%f,Dens=%f,Temp=%f ",
+               s_PMP[nn].Prod_lvl,s_PMP[nn].Wat_lvl,s_PMP[nn].DensReal  ,s_PMP[nn].Temp );
+       // flag_prn=0;
+}
+
+    PMP[nn].n_success++;
+    PMP_inp_err[nn]=0;
+   }
+   else
+   {
+m_err:
+  //     printf("\n\r CRC error");
+         PMP_inp_err[nn]++;
+         if(PMP_inp_err[nn]>=PMP_max_inp_err)
+         {
+           PMP_inp_err[nn]=PMP_max_inp_err;
+           f_icp_error(&PMP[nn],RD_ERR );
+         }
+    PMP[nn].n_CRC_error++;
+   }
+
+   f_queue_free(ii,&PMP_Rqst[nn]);
+}
+/*-------------------------------------------*/
+
+
+

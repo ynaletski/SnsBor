@@ -1,0 +1,458 @@
+=====================
+04 Aug 2010
+
+host.h
+
+was:
+struct icp_mod
+{
+int port;
+int addr;
+char name[10];
+int TT;
+int CC;
+int FF;
+};
+
+now:
+struct icp_mod
+{
+int port;
+int addr;
+char name[10];
+int TT;
+int CC;
+int FF;
+int addr0;
+};
+
+host.c
+
+void f_result_Licp(int ii)
+
+was:
+  ICP_MOD[ii][licp_fnd].addr=i;
+  ICP_MOD[ii][licp_fnd].port=ii;
+
+now:
+  ICP_MOD[ii][licp_fnd].addr=i;
+  ICP_MOD[ii][licp_fnd].addr0=licp_addr;
+  ICP_MOD[ii][licp_fnd].port=ii;
+
+
+        if  ((intrpr.wrd[0]=='M') &&(intrpr.wrd[1]=='O') && (intrpr.wrd[2]=='D'))
+        {   //'MOD'
+         i1=ICP_mod_fnd[1]+ICP_mod_fnd[2]+ICP_mod_fnd[3];
+         if( ((i=f_123(4)) >= 0 ) &&  (i< i1 ) )
+         {
+           ICPl_MOD=f_get_mod_str(i);
+
+           addr0  = ICPl_MOD->addr0;
+           addr  = ICPl_MOD->addr;
+           baud   = baudrate_val[ICPl_MOD->CC];
+           TT_par = ICPl_MOD->TT ;
+           FF_par = ICPl_MOD->FF ;
+
+          if((i2=f_dis_set(ds_mod,4,4)) > 0)
+
+
+void f_mod_list()
+was:
+      printf("\n\r%3d %10s      %d    %02X   %6ld",i2,ICPl_MOD->name,ICPl_MOD->port,ICPl_MOD->addr,baudrate_val[ICPl_MOD->CC]);
+
+now:
+     if(ICPl_MOD->addr0 != ICPl_MOD->addr)
+      printf("\n\r%3d %10s      %d \(%02X\)%02X  %6ld",i2,ICPl_MOD->name,ICPl_MOD->port,ICPl_MOD->addr0,ICPl_MOD->addr,baudrate_val[ICPl_MOD->CC]);
+     else
+      printf("\n\r%3d %10s      %d    %02X   %6ld",i2,ICPl_MOD->name,ICPl_MOD->port,ICPl_MOD->addr,baudrate_val[ICPl_MOD->CC]);
+
+=====================
+ 27 Sep 2010
+ valve.c
+
+void f_en_two_valv()
+
+добавлено:
+
+ if( s_MVD[0].Press < P_min_valve)
+ {
+    i_dens &=~CLP0;
+    i_dens &=~OUT1;
+    i_dens &= ~OUT2;
+    return;
+ }
+
+=====================
+30 Sep 2010
+ nfp.c
+   added:
+
+  list1_dsr,
+  15,
+  &AddrSlv,
+  0,
+  255,
+  T_INT,
+//----------------
+....
+  list1_dsr,
+  16,   // Delta :Статус
+  &Delta[0].status,
+  0.,
+  1.,
+  T_INT,
+//-----------
+
+==============================
+18 Oct 2010
+nfp.c
+int f_cycle()
+
+было:
+     if(flag_pool)
+     {
+       if(MMI.status)
+       {
+         if(f_menu_MMI()) return -1;
+         f_MMI();
+       }
+     ....
+
+стало:
+     if(flag_pool)
+     {
+       if(f_menu_MMI()) return -1;
+       if(MMI.status)
+       {
+         f_MMI();
+       }
+     ...
+==============================
+
+21 Oct 2010
+
+slave.c
+dos_win.c
+Добавлен int регистр 18 mode_hst - запрещение ввода дозы из ВРФ.
+Добавлено "Link" на экран ВРФ в начальной странице при наличии связи.
+Добавлена команда '11' - продолжить отпуск дозы с текущего значения.
+
+rtu.c
+rtu.h
+
+ добавлена длина n_buf_RTU_s
+
+  unsigned char buf_tmp[n_buf_RTU_s];
+добавлена функция
+int f_prepareRTU1(char *msg,int *msg_length)
+
+ для контроля ответа Slave в размер n_buf_RTU_s.
+
+==============================
+23 Oct 2010
+
+dos_win.c
+ подправлено отображение при mode_hst != 0.
+
+==============================
+02 Jan 1011
+vol.c
+
+void f_count_tank(int ii)
+
+was:
+//  По составу жидкой фазы и температуре паровой фазы определяется
+//  плотность паровой фазы пропана-бутана (без учета этана) и
+//  давление паровой фазы пропан-бутана
+
+   ftmp=*val_Temp[ii];
+   if(ftmp < s_DGM[ii].Temp) ftmp=s_DGM[ii].Temp;
+
+now:
+//  По составу жидкой фазы и температуре паровой фазы определяется
+//  плотность паровой фазы пропана-бутана (без учета этана) и
+//  давление паровой фазы пропан-бутана
+
+   ftmp=*val_Temp[ii];
+   if(ftmp < -45) ftmp=s_DGM[ii].Temp;
+//   if(ftmp < s_DGM[ii].Temp) ftmp=s_DGM[ii].Temp; // QQQQ
+
+======================================================
+
+28 Jan 2011
+добавлен запрет анализа уровня в резервуарах ( устанавливается от MMI)
+
+vol.c
+
+======================================================
+
+07 Feb 2011
+
+ добавлена коррекция теплового расширения стенок резервуара
+
+ vol.c
+
+float alpha_LVL[max_DGM]  = {11.4 * 0.001 * 0.001,11.4 * 0.001 * 0.001}; // коэффициент линейного расширения
+float alpha_Tank[max_DGM] = {11.4 * 0.001 * 0.001,11.4 * 0.001 * 0.001}; // коэффициент линейного расширения
+float T0_LVL[max_DGM] = {20,20};                         // температура калибровки
+float T0_Tank[max_DGM]= {20,20};                        // температура калибровки
+
+float f_get_vol(int ii)
+
+ AL - параметры температурной коррекции уровнемера
+ p1 - Alpha уровнемера 1
+ p2 - Alpha уровнемера 2
+ p3 - T0    уровнемера 1
+ p4 - T0    уровнемера 1
+
+ AT - параметры температурной коррекции емкости (tank)
+ p1 - Alpha tank 1
+ p2 - Alpha tank 2
+ p3 - T0    tank 1
+ p4 - T0    tank 2
+
+
+======================================================
+
+10 Feb 2011
+
+Восстановлено
+vol.c
+void f_count_tank(int ii)
+...
+was
+   s_DGM[ii].DensGas=s_MVD[ii].DensG+D_Etan;
+
+now
+   s_DGM[ii].DensGas=s_MVD[0].DensG+D_Etan;
+
+======================================================
+host.c
+"RE"
+добавлено
+
+   flag_Slv=0;
+======================================================
+12 Apr 2011
+
+vol.c
+
+float f_get_vol(int ii)
+was
+ nn=n_TCT[ii]-1; // количество записей
+now
+ nn=n_TCT[ii]-2; // количество записей
+
+добавлено
+
+  if(nn1 >= nn)
+    nn1=nn-1;
+------------
+host.c
+"TC1"
+was
+         printf(" TCT%d OK,%d lines, CRC_rcv=%8lx , CRC_snd = %8lx",i3,n_TCT[i],ee_tmp,ee_tmp1 );
+now
+         printf(" TCT%d OK,%d lines, CRC_rcv=%8lx , CRC_snd = %8lx",i3,n_TCT[i3],ee_tmp,ee_tmp1 );
+======================================================
+
+20 Sep 2011
+ eee.c
+ добавлены параметры команды HM (максимальный уровень от уровнемера)
+
+&H_Cyl_M[0], sizeof(H_Cyl_M[0]  ),
+&H_Cyl_M[1], sizeof(H_Cyl_M[1]  ),
+&H_Cyl_M[2], sizeof(H_Cyl_M[2]  ),
+
+host.c
+в команду HM добавлен 3-й параметр
+
+----------------------------------
+
+03 Dec 2011
+
+ag1.c
+
+int f_rd_Dns()
+void f_wr_Dns()
+
+ добавлено чтение-запись  D3_eee, T3_eee
+
+arch.h
+
+ добавлено
+
+#define nr_D30    6
+#define nr_D31    7
+#define nr_D32    8
+#define nr_D33    9
+
+#define nr_T30   10
+#define nr_T31   11
+#define nr_T32   12
+#define nr_T33   13
+
+----------------------
+9 May 2012
+ag1.c
+
+THE BUG:
+was:
+long int time_DGM[2]={0,0};
+
+now:
+long int time_DGM[max_DGM]={0,0,0};
+
+....
+main()
+...
+  InstallUserTimerFunction_us(10000,fun_tim_u);
+...
+
+  StopUserTimerFun();
+-----------
+host.c
+"RES"
+added
+  StopUserTimerFun();
+  RestoreCom(1);
+  RestoreCom(2);
+  RestoreCom(3);
+  while(!IsCom4OutBufEmpty()) ;  /* Wait all message sent out of COM4 */
+  RestoreCom(4);
+  f_free_SlvBuf();
+
+---------------
+host.c
+"SLV" изм. p4 p5
+SLV p1 p2 p3 p4 p5
+       p1 - номер COM для Slave RTU
+       p2 - адрес Modbus для Slave
+       p3 - период сторож.таймера Host, мс
+-->   p4 - таймаут приема байта Slave_RTU, мс (8)
+-->   p5 - задержка ответа Slave_RTU,мс  (5)
+---------------
+
+eee.c
+
+was:
+&cod_float  ,sizeof(cod_float ),
+now:
+//&cod_float  ,sizeof(cod_float ),
+&fict_int1  ,sizeof(fict_int1 ),
+added:
+&byte_timout_slv    ,sizeof( byte_timout_slv  ),
+&out_delay_slv      ,sizeof( out_delay_slv    ),
+---------------
+
+slave.c
+
+added:
+
+void fun_tim_u(void)
+
+changed:
+void f_SlaveRTU()
+
+added:
+long int byte_timout_slv= 8 ;
+long int out_delay_slv = 5 ;
+
+int ffgets_SlvRTU(int ComPort)
+
+was:
+     if( f_timer(time_snd[ComPort],ToutAns[ComPort]))
+now:
+       if( f_timer(time_snd[ComPort],byte_timout_slv))
+
+закомментировано:
+
+was:
+        time_snd[ComPort]= TimeStamp;
+m_end:
+ ...
+
+now:
+...
+
+m_end:
+....
+
+...
+//     ToutAns[ComPort]=byte_timout_rtu[ComPort];
+--------
+void  f_intr_SlvRTU()
+
+m_err:
+out_b:
+
+was:
+ f_prepareRTU(buf_tmpSR,&i2);
+ ToComBufn(ComPortSlv,buf_tmpSR,i2);
+
+now:
+ f_prepareRTU(buf_tmpSR,&i2);
+ fl_slv_out=i2;
+// ToComBufn(ComPortSlv,buf_tmpSR,i2);
+
+-----------
+
+19 Jul 2012
+
+------------------
+vol.h
+added:
+
+#define OUT3 msk_int[num_out3]
+
+-------------------
+vol.c
+was:
+int  num_out1 = 5, num_out2 =  6;
+now:
+int  num_out1 = 5, num_out2 =  6, num_out3 = 16;
+
+added:
+
+float Vol_85[max_nn]={8500.,8500.,8500.};
+
+ ...
+     Vol_85[ii]= ftmp * proc85;
+ ...
+   if( s_DGM[ii].VolLiq > Vol_85[ii] )  ii_LVL[ii] |= OUT3 ;
+
+------------------
+eee.c
+added:
+&num_out3, sizeof( num_out3 ),
+-----------
+
+29 Aug 2012
+
+slave.c
+
+void fun_tim_u(void)
+now:
+/*
+        if(fl_slv_out != 0)
+         {
+          if( f_timer(time_snd[ComPortSlv],out_delay_slv))
+           {
+            ToComBufn(ComPortSlv,buf_tmpSR,fl_slv_out);
+            flag_slvrtu=0;
+            fl_slv_out=0;
+            n_bcom[ComPortSlv]=0;
+           }
+         }
+
+*/
+
+void  f_intr_SlvRTU()
+now:
+
+// fl_slv_out=i2;
+ fl_slv_out=0;
+ ToComBufn(ComPortSlv,buf_tmpSR,i2);
+
+-----------
+

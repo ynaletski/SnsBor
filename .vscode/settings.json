@@ -1,0 +1,9 @@
+{
+    "files.associations": {
+        "*.C": "c",
+        "DEVICE.H": "cpp",
+        "ICP.H": "cpp",
+        "SLAVE2.H": "cpp",
+        "MMI_NEW.H": "cpp"
+    }
+}

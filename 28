@@ -1,0 +1,11 @@
+
+       if (!strcmp(intrpr.wrd,"P" ))
+        {   //'P ' - вывести измеренное время
+          flag_prn ^= 1;
+          fl_pr_pmln ^= 1;
+          printf(" %d %d",flag_prn,fl_pr_pmln);
+          io_1=-1;
+          goto fin;
+        }
+//---------------------------------
+
